@@ -1,0 +1,271 @@
+---
+title: "MP Genome Comparison"
+author: "Maxwell Katsikas, Joel Pantusso"
+date: '2022-04-26'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggthemes)
+```
+
+# Reading in strain annotations #
+```{r}
+strain1 <- read.csv("SRR2135844.csv") %>% 
+  mutate(strain = 1) %>% 
+  filter(Feature != "gene") %>% 
+  select(Sequence.H1A1.H1, Feature, Start, End, Strand, Attributes, strain) %>% 
+  mutate(Product = '',
+         ID = '',
+         RefSeq = '')
+
+strain1_compare <- read.csv("SRR2135844.csv") %>% 
+  mutate(strain = 1) %>% 
+  filter(Feature != "CDS") %>% 
+  select(Sequence.H1A1.H1, Feature, Start, End, Strand, Attributes, strain)
+
+strain2 <- read.csv("SRR2135847.csv")%>% 
+  mutate(strain = 2) %>% 
+  filter(Feature != "gene") %>% 
+  select(Sequence.H1A1.H1, Feature, Start, End, Strand, Attributes, strain) %>% 
+  mutate(Product = '',
+         ID = '',
+         RefSeq = '')
+
+strain2_compare <- read.csv("SRR2135847.csv") %>% 
+  mutate(strain = 2) %>% 
+  filter(Feature != "CDS") %>% 
+  select(Sequence.H1A1.H1, Feature, Start, End, Strand, Attributes, strain)
+
+strain3 <- read.csv("SRR2135848.csv")%>% 
+  mutate(strain = 3) %>% 
+  filter(Feature != "gene") %>% 
+  select(Sequence.H1A1.H1, Feature, Start, End, Strand, Attributes, strain) %>% 
+  mutate(Product = '',
+         ID = '',
+         RefSeq = '')
+
+strain3_compare <- read.csv("SRR2135848.csv") %>% 
+  mutate(strain = 3) %>% 
+  filter(Feature != "CDS") %>% 
+  select(Sequence.H1A1.H1, Feature, Start, End, Strand, Attributes, strain)
+
+strain4 <- read.csv("SRR2135850.csv")%>% 
+  mutate(strain = 4) %>% 
+  filter(Feature != "gene") %>% 
+  select(Sequence.H1A1.H1, Feature, Start, End, Strand, Attributes, strain) %>% 
+  mutate(Product = '',
+         ID = '',
+         RefSeq = '')
+
+strain4_compare <- read.csv("SRR2135850.csv") %>% 
+  mutate(strain = 4) %>% 
+  filter(Feature != "CDS") %>% 
+  select(Sequence.H1A1.H1, Feature, Start, End, Strand, Attributes, strain)
+
+strain5 <- read.csv("SRR2135852.csv")%>% 
+  mutate(strain = 5) %>% 
+  filter(Feature != "gene") %>% 
+  select(Sequence.H1A1.H1, Feature, Start, End, Strand, Attributes, strain) %>% 
+  mutate(Product = '',
+         ID = '',
+         RefSeq = '')
+
+strain5_compare <- read.csv("SRR2135852.csv") %>% 
+  mutate(strain = 5) %>% 
+  filter(Feature != "CDS") %>% 
+  select(Sequence.H1A1.H1, Feature, Start, End, Strand, Attributes, strain)
+```
+
+# Creating ID attribute function #
+```{r}
+Attribute_ID <- function(x) {
+  Attributes_list <- str_split(x$Attributes, ";")
+  Attributes <- do.call(rbind, Attributes_list)
+  ID <- str_detect(Attributes, "ID=")
+  Attributes_DF <- data.frame(Attributes) %>%
+    rename("ID" = X1) %>%
+    select(ID)
+  x <- x %>%
+    mutate(ID = cbind(Attributes_DF))
+}
+```
+
+# Creating refseq attribute function #
+```{r}
+get_refseq <- function(x) {
+  Attributes_list <- str_split(x$Attributes, ";")
+  Attributes <- do.call(rbind, Attributes_list)
+  for (row in 1:nrow(Attributes)) {
+    start_loc <- str_locate(Attributes[row], "RefSeq=")
+    end_loc <- start_loc + 21
+    refseq <- x$Attributes[row][start_loc:end_loc]
+  x$RefSeq[row] <- refseq
+  }
+}
+```
+
+# Creating gene comparison function #
+```{r}
+gene_comparison <- function(strain) {
+  num_gene <- 0
+  num_trna <- 0
+
+  
+  for (row in 1:nrow(strain)) {
+    
+    if (strain$Feature[row] == "gene") {
+      strain$gene[row] <-  1
+      num_gene <- num_gene +1
+    } else {
+      strain$gene[row] <-  0
+    }
+    
+    if (strain$Feature[row] == "tRNA") {
+      strain$trna[row] <-  1
+      num_trna <- num_trna + 1
+    } else {
+      strain$trna[row] <-  0
+    }
+  }
+    
+  percent_gene <- num_gene / nrow(strain)
+  percent_trna <- num_trna / nrow(strain)
+  strain <- strain %>% 
+    mutate(num_gene <- num_gene) %>% 
+    mutate(num_trna <- num_trna) %>% 
+    mutate(percent_gene <- percent_gene) %>% 
+    mutate(percent_trna <- percent_trna)
+}
+```
+
+
+# Applying gene comparison function #
+```{r}
+strain1_compare <- gene_comparison(strain1_compare)
+strain2_compare <- gene_comparison(strain2_compare)
+strain3_compare <- gene_comparison(strain3_compare)
+strain4_compare <- gene_comparison(strain4_compare)
+strain5_compare <- gene_comparison(strain5_compare)
+```
+
+
+# Merging strain data frames #
+```{r}
+strain_compare <- rbind(strain1_compare, strain2_compare)
+strain_compare <- rbind(strain_compare, strain3_compare)
+strain_compare <- rbind(strain_compare, strain4_compare)
+strain_compare <- rbind(strain_compare, strain5_compare) %>% 
+  group_by(strain) %>% 
+  summarize(num_gene = sum(gene),
+            num_trna = sum(trna))
+```
+
+# Adding ID Attribute Column #
+```{r, warning=FALSE}
+strain1_ID <- Attribute_ID(strain1)
+strain2_ID <- Attribute_ID(strain2)
+strain3_ID <- Attribute_ID(strain3)
+strain4_ID <- Attribute_ID(strain4)
+strain5_ID <- Attribute_ID(strain5)
+```
+
+
+# Comparing what ID's are shared across strains #
+```{r}
+shared_IDs <- intersect(strain1_ID$ID, strain2_ID$ID)
+shared_IDs <- intersect(shared_IDs, strain3_ID$ID)
+shared_IDs <- intersect(shared_IDs, strain4_ID$ID)
+shared_IDs <- intersect(shared_IDs, strain5_ID$ID)
+```
+
+
+# Adding RefSeq Attribute Column #
+```{r}
+#strain1_RefSeq <- get_refseq(strain1_ID)
+```
+
+
+# Plot of Number of Genes Annotated #
+```{r}
+genes_plot <- ggplot(data=strain_compare) +
+  geom_col(aes(x=strain, y=num_gene), fill="darkgrey") +
+  labs(title="Genes Annotated Across Five Strains of Mycoplasma pneumoniae", 
+       caption="Source: NCBI") +
+  coord_cartesian(ylim = c(650, 750)) +
+  annotate("text", label="Strain M547", x= 1, y=700, color="black") +
+  xlab("Strain") +
+  ylab("Number of Genes Annotated") +
+  theme_economist() +
+  theme(plot.title = element_text(size=14))
+```
+
+```{r}
+ggsave(filename="gene_plot.png", plot = genes_plot, path = "C:/Users/maxka/OneDrive/Documents/BIO485")
+genes_plot
+```
+
+# Plot of Number of tRNA Annotated #
+```{r}
+tRNA_plot <- ggplot(data=strain_compare) +
+  geom_col(aes(x=strain, y=num_trna), fill="darkgrey") +
+  labs(title="tRNA Segments Annotated Across Five Strains of Mycoplasma pneumoniae", 
+       caption="Source: NCBI") +
+  coord_cartesian(ylim = c(30, 38)) +
+  scale_y_continuous(breaks=c(30, 32, 34, 36, 38)) +
+  annotate("text", label="Strain M547", x= 1, y=35, color="black") +
+  xlab("Strain") +
+  ylab("Number of tRNA Annotated") +
+  theme_economist() +
+  theme(plot.title = element_text(size=12.5))
+```
+
+```{r}
+ggsave(filename="tRNA_plot.png", plot = tRNA_plot, path = "C:/Users/maxka/OneDrive/Documents/BIO485")
+tRNA_plot
+```
+
+```{r, warning=FALSE}
+M547 <- read.table(text=as.character(strain1$Attributes), sep=";", fill=TRUE,
+                   as.is=TRUE) %>% 
+  select(V1, V4, V7, V8) %>% 
+  rename("ID" = V1, "Ontology" = V4, "Product" = V7, "Protein_ID" = V8)
+
+strain2_att <- read.table(text=as.character(strain2$Attributes), sep=";", fill=TRUE,
+                   as.is=TRUE) %>% 
+  select(V1, V4, V7, V8) %>% 
+  rename("ID" = V1, "Ontology" = V4, "Product" = V7, "Protein_ID" = V8)
+
+strain3_att <- read.table(text=as.character(strain3$Attributes), sep=";", fill=TRUE,
+                   as.is=TRUE) %>% 
+  select(V1, V4, V7, V8) %>% 
+  rename("ID" = V1, "Ontology" = V4, "Product" = V7, "Protein_ID" = V8)
+
+strain4_att <- read.table(text=as.character(strain4$Attributes), sep=";", fill=TRUE,
+                   as.is=TRUE) %>% 
+  select(V1, V4, V7, V8) %>% 
+  rename("ID" = V1, "Ontology" = V4, "Product" = V7, "Protein_ID" = V8)
+
+strain5_att <- read.table(text=as.character(strain5$Attributes), sep=";", fill=TRUE,
+                   as.is=TRUE) %>% 
+  select(V1, V4, V7, V8) %>% 
+  rename("ID" = V1, "Ontology" = V4, "Product" = V7, "Protein_ID" = V8)
+```
+
+```{r}
+shared_products <- intersect(M547$Product, strain2_att$Product)
+shared_products <- intersect(shared_products, strain3_att$Product)
+shared_products <- intersect(shared_products, strain4_att$Product)
+shared_products <- intersect(shared_products, strain5_att$Product)
+shared_products
+```
+
+```{r}
+shared_ontology <- intersect(M547$Ontology, strain2_att$Ontology)
+shared_ontology <- intersect(shared_ontology, strain3_att$Ontology)
+shared_ontology <- intersect(shared_ontology, strain4_att$Ontology)
+shared_ontology <- intersect(shared_ontology, strain5_att$Ontology)
+shared_ontology
+```
