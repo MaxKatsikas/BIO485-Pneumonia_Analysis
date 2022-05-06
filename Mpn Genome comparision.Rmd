@@ -1,5 +1,5 @@
 ---
-title: "Mycoplasma pneumoniae Genome Comparison"
+title: "Mycoplasma pneumoniae M547 Annotation"
 author: "Joel Pantuso"
 date: "4/26/2022"
 output: html_document
@@ -15,10 +15,6 @@ library(utils)
 ```{r data}
 # read in data
 M547 <- read.csv("SRR2135852.csv")
-strain6421 <- read.csv("SRR2135850.csv")
-strain6009 <- read.csv("SRR2135848.csv")
-strain5954 <- read.csv("SRR2135847.csv")
-strain5767 <- read.csv("SRR2135844.csv")
 ```
 
 ```{r clean}
@@ -27,15 +23,6 @@ M547 <- M547 %>%
   filter(Feature != "gene") %>%
   filter(Feature != "pseudogene") %>%
   filter(Feature != "exon")
-
-strain6421 <- strain6421 %>%
-  filter(Feature != "gene")
-strain6009 <- strain6009 %>%
-  filter(Feature != "gene")
-strain5954 <- strain5954 %>%
-  filter(Feature != "gene")
-strain5767 <- strain5767 %>%
-  filter(Feature != "gene")
 ```
 
 
@@ -48,12 +35,12 @@ write.csv(M547, "M547 Clean.csv", row.names=FALSE)
 
 ```{r}
 # separate out attributes into individual columns
-#read.table(text=as.character(M547$Attributes), sep=";", fill=TRUE, as.is=TRUE) %>%
-  #write.csv("attributes.csv", row.names=FALSE)
+read.table(text=as.character(M547$Attributes), sep=";", fill=TRUE, as.is=TRUE) %>%
+  write.csv("attributes.csv", row.names=FALSE)
 ```
 
 ```{r, eval=FALSE}
-# separate out attributes into individual columns
+# Repeat for contigs 7-20, somehow missing from first run
 M547.7.20 <- read.csv("contigs7-20.csv")
 
 M547.7.20 <- M547.7.20 %>%
@@ -69,6 +56,7 @@ read.table(text=as.character(M547.7.20$Attributes), sep=";", fill=TRUE, as.is=TR
 ```
 
 ```{r}
+# Repeat for contig 6, somehow also missing :/
 M547.6 <- read.csv("contig6.csv")
 
 M547.6 <- M547.6 %>%
